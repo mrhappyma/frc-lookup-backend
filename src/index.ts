@@ -44,26 +44,32 @@ const syncCaches = async () => {
       (team) => team.rookieYear <= i
     );
     const yearCache = new Map<number, string>();
-    for (const team of existingTeams) {
-      const teamPhoto = await fetch(
-        `${baseUrl}/team/frc${team.number}/media/${i}`,
-        {
-          headers: {
-            "X-TBA-Auth-Key": env.TBA_TOKEN,
-          },
+    const teamNumbers = existingTeams.map((team) => team.number);
+    for (let j = 0; j < teamNumbers.length; j += 25) {
+        const teamBatch = teamNumbers.slice(j, j + 15);
+        const teamPhotos = await Promise.all(teamBatch.map(async (teamNumber) => {
+            const teamPhoto = await fetch(
+                `${baseUrl}/team/frc${teamNumber}/media/${i}`,
+                {
+                    headers: {
+                        "X-TBA-Auth-Key": env.TBA_TOKEN,
+                    },
+                }
+            );
+            const teamPhotoJson = (await teamPhoto.json()) as TeamPhotoTBAResponse[];
+            const photo = teamPhotoJson.find(
+                (photo) =>
+                    photo.preferred &&
+                    photo.direct_url.startsWith("https://") &&
+                    photo.type === "imgur"
+            );
+            return { teamNumber, photo: photo?.direct_url };
+        }));
+        for (const { teamNumber, photo } of teamPhotos) {
+            if (photo) {
+                yearCache.set(teamNumber, photo);
+            }
         }
-      );
-      const teamPhotoJson = (await teamPhoto.json()) as TeamPhotoTBAResponse[];
-      //TODO: instagram images
-      const photo = teamPhotoJson.find(
-        (photo) =>
-          photo.preferred &&
-          photo.direct_url.startsWith("https://") &&
-          photo.type === "imgur"
-      );
-      if (photo) {
-        yearCache.set(team.number, photo.direct_url);
-      }
     }
     photoCaches.set(i, yearCache);
   }
