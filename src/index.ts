@@ -16,6 +16,7 @@ const teamCache = new Map<number, Team>();
 const photoCaches = new Map<number, Map<number, string>>();
 const syncCaches = async () => {
   syncStatus = "syncing teams";
+  if (!teamCacheReady) console.log(syncStatus);
   const baseUrl = "https://www.thebluealliance.com/api/v3";
   for (let i = 0; i < 20; i += 1) {
     const teamBatch = await fetch(`${baseUrl}/teams/${i}`, {
@@ -38,6 +39,7 @@ const syncCaches = async () => {
   const currentYear = new Date().getFullYear();
   for (let i = 1992; i <= currentYear; i += 1) {
     syncStatus = `syncing photos for ${i}`;
+    if (!photoCacheReady) console.log(syncStatus);
     const existingTeams = Array.from(teamCache.values()).filter(
       (team) => team.rookieYear <= i
     );
@@ -65,6 +67,7 @@ const syncCaches = async () => {
     }
     photoCaches.set(i, yearCache);
   }
+  if (!photoCacheReady) console.log("photos synced");
   photoCacheReady = true;
   lastSync = new Date().toISOString();
   syncStatus = "idle";
